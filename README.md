@@ -1,3 +1,9 @@
+# Dependencies
+- Python
+```
+pip install -r requirements.txt
+```
+
 # Run
 
 ## Backend:
@@ -9,10 +15,4 @@ uvicorn Backend:app
 ## Frontend:
 ```bash
 python Frontend.py
-```
-
-# Dependencies
-- Python
-```
-pip install -r requirements.txt
 ```
