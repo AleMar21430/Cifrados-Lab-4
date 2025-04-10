@@ -11,6 +11,11 @@ from datetime import datetime, timedelta
 from Encrypt import encrypt, decrypt, generate_rsa_keys
 from Sign import sign, verify_signature
 
+import pickle
+import os
+
+STORE_DB = True
+
 # JWT Configuration
 SECRET_KEY = "your_secret_key"
 ALGORITHM = "HS256"
@@ -23,6 +28,13 @@ app = FastAPI()
 db_sign_keys : Dict[str, str] = {}
 db_files: Dict[str, Dict] = {}
 db_users: Dict[str, str] = {}
+if (STORE_DB and os.path.exists('DB.bin')):
+	with open('DB.bin', 'rb') as f:
+		db_sign_keys, db_files, db_users = pickle.load(f)
+
+def storeDB():
+	with open('DB.bin', 'wb') as f:
+		pickle.dump((db_sign_keys, db_files, db_users), f)
 
 class User(BaseModel):
 	username: str
@@ -61,7 +73,7 @@ def register(user: User):
 
 	# Hash Password
 	db_users[user.username] = get_password_hash(user.password)
-
+	storeDB()
 	return {"message": "User registered successfully"}
 
 @app.post("/login", response_model=Token)
@@ -69,6 +81,7 @@ def login(user: User):
 	if user.username not in db_users or not verify_password(user.password, db_users[user.username]):
 		raise HTTPException(status_code=401, detail="Invalid credentials")
 	access_token = create_access_token(data={"sub": user.username})
+	storeDB()
 	return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/archivos")
@@ -105,7 +118,7 @@ def upload_file(
 		"file_pub_key": file_pub_key,
 		"content": file_data
 	}
-
+	storeDB()
 	return {"filename": file_name, "filesize": len(file_data), "signature": signature, "hash": file_hash}
 
 @app.get("/archivos/{filename}/descargar")
