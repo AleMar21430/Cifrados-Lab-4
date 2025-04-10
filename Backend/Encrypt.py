@@ -30,6 +30,6 @@ def decrypt(encrypted_payload: bytes, private_key_str: str) -> bytes:
 	for enc_chunk_b64 in encrypted_chunks:
 		enc_chunk = base64.b64decode(enc_chunk_b64)
 		dec = key._decrypt(int.from_bytes(enc_chunk, byteorder='big'))
-		dec_bytes = dec.to_bytes((dec.bit_length() + 7) // 8, byteorder='big')
+		dec_bytes = dec.to_bytes(CHUNK_SIZE, byteorder='big')
 		decrypted += dec_bytes
 	return decrypted
