@@ -66,6 +66,15 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 	except JWTError:
 		raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
+import socket
+@app.on_event("startup")
+def show_docs_url():
+	hostname = socket.gethostname()
+	local_ip = socket.gethostbyname(hostname)
+	print(f"🌐 Local IP: {local_ip}")
+	print(f"📄 Swagger Docs URL:  http://{local_ip}:8000/docs")
+	print(f"📄 ReDoc URL:         http://{local_ip}:8000/redoc")
+
 @app.post("/register")
 def register(user: User):
 	if user.username in db_users:
@@ -85,7 +94,10 @@ def login(user: User):
 	return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/archivos")
-def list_files():
+def list_files(username: str = Depends(get_current_user)):
+	if username not in db_users:
+		raise HTTPException(status_code=400, detail="User not registered")
+
 	return [
 		{
 			"file_name": file_name,

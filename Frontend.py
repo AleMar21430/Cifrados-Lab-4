@@ -35,6 +35,7 @@ class App(QWidget):
 	def __init__(self):
 		super().__init__()
 		self.token = ""
+		self.username = ""
 		self.pub_key = ""
 		self.priv_key = ""
 		self.init_ui()
@@ -85,6 +86,9 @@ class App(QWidget):
 		self.btn_upload_sign.clicked.connect(self.upload_signed_file)
 		self.btn_verify = QPushButton("Verify File")
 		self.btn_verify.clicked.connect(self.verify_file)
+
+		self.btn_verify = QPushButton("New Keys")
+		self.btn_verify.clicked.connect(self.new_keys)
 
 		for btn in [self.btn_logout, self.btn_list_files, self.btn_upload, self.btn_upload_sign, self.btn_verify]:
 			top_button_layout.addWidget(btn)
@@ -141,6 +145,7 @@ class App(QWidget):
 			self.logout()
 		else:
 			self.token = response.json()["access_token"]
+			self.username = username
 			with open(f"./Keys/{username}.pub", "r") as f:
 				self.pub_key = f.read()
 			with open(f"./Keys/{username}", "r") as f:
@@ -148,7 +153,20 @@ class App(QWidget):
 			self.stacked_widget.setCurrentWidget(self.main_widget)
 			self.list_files()
 
+	def new_keys(self):
+		if self.username != "":
+			pub_key, priv_key = generate_rsa_keys()
+			with open(f"./Keys/{self.username}.pub", "w") as f:
+				f.write(self.pub_key)
+			with open(f"./Keys/{self.username}", "w") as f:
+				f.write(self.priv_key)
+			self.pub_key = pub_key
+			self.priv_key = priv_key
+			show_message("KEY", "Generated New Credentials")
+
 	def logout(self):
+		self.token = ""
+		self.username = ""
 		self.input_username.clear()
 		self.input_password.clear()
 		self.stacked_widget.setCurrentWidget(self.login_widget)
@@ -224,7 +242,7 @@ class App(QWidget):
 			try:
 				file_data = decrypt(b64decode(response.json().get("content", "")), self.priv_key)
 			except Exception as e:
-				show_message("Error", "This file does not belong to you.")
+				show_message("Error", "This file does not belong to you. Decryption Error")
 				return
 
 			output_filename = response.json().get("filename", os.path.basename(item.text()))
