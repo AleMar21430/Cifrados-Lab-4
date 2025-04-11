@@ -12,6 +12,7 @@ from Encrypt import encrypt, decrypt, generate_rsa_keys
 from Sign import sign, verify_signature
 
 import pickle
+import json
 import os
 
 STORE_DB = True
@@ -75,6 +76,16 @@ def show_docs_url():
 	print(f"📄 Swagger Docs URL:  http://{local_ip}:8000/docs")
 	print(f"📄 ReDoc URL:         http://{local_ip}:8000/redoc")
 
+@app.on_event("shutdown")
+def on_shutdown():
+	print("💾 Shutting down... saving DB.")
+	if STORE_DB:
+		storeDB()
+		with open("DB_Files.json", "w") as f:
+			json.dump(db_files, f, indent=4)
+		with open("DB_Users.json", "w") as f:
+			json.dump(db_users, f, indent=4)
+
 @app.post("/register")
 def register(user: User):
 	if user.username in db_users:
@@ -82,7 +93,6 @@ def register(user: User):
 
 	# Hash Password
 	db_users[user.username] = get_password_hash(user.password)
-	storeDB()
 	return {"message": "User registered successfully"}
 
 @app.post("/login", response_model=Token)
@@ -90,7 +100,6 @@ def login(user: User):
 	if user.username not in db_users or not verify_password(user.password, db_users[user.username]):
 		raise HTTPException(status_code=401, detail="Invalid credentials")
 	access_token = create_access_token(data={"sub": user.username})
-	storeDB()
 	return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/archivos")
@@ -130,7 +139,7 @@ def upload_file(
 		"file_pub_key": file_pub_key,
 		"content": file_data
 	}
-	storeDB()
+
 	return {"filename": file_name, "filesize": len(file_data), "signature": signature, "hash": file_hash}
 
 @app.get("/archivos/{filename}/descargar")
